@@ -1,0 +1,28 @@
+name: contribution-graph
+on:
+  schedule:
+    - cron: '23 9 * * 1-6'   # Mon–Sat at 09:23 UTC, never Sunday
+  workflow_dispatch:          # adds a manual "Run workflow" button for testing
+
+jobs:
+  commits:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Skip some Saturdays (50% chance)
+        id: gate
+        run: |
+          if [ "$(date -u +%u)" = "6" ] && [ $((RANDOM % 2)) -eq 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.gate.outputs.skip == 'false'
+        uses: bcanseco/github-contribution-graph-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_EMAIL: ${{ secrets.GIT_EMAIL }}
+          MIN_COMMITS_PER_DAY: 6
+          MAX_COMMITS_PER_DAY: 16
